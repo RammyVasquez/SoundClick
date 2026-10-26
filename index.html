@@ -159,6 +159,42 @@ body.live .proj svg{display:none}
 .pitem .pn{overflow-wrap:anywhere}
 .pitem .pc{font-size:14px;color:var(--muted);font-weight:600;white-space:nowrap}
 .danger:disabled{opacity:.45}
+
+/* ---- Paneles y pulido visual ---- */
+.layout{display:block}
+.now,.panel .ph{display:none}
+.nowlist{display:flex;flex-direction:column;gap:8px;padding:12px}
+.nowempty{margin:0;padding:6px 16px 18px;color:var(--muted);font-size:15px;line-height:1.45}
+.badge{min-width:28px;height:24px;padding:0 8px;border-radius:12px;background:var(--field);color:var(--muted);font-size:14px;font-weight:700;display:inline-grid;place-items:center}
+.np{display:grid;grid-template-columns:auto 1fr auto auto;align-items:center;gap:8px 10px;background:var(--field);border-radius:14px;padding:10px 10px 10px 12px}
+.np .dot{width:12px;height:12px;border-radius:50%;background:var(--c)}
+.np .npn{font-weight:700;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.np .npt{font-variant-numeric:tabular-nums;font-size:14px;color:var(--muted);font-weight:600}
+.np .npx{width:38px;height:38px;border-radius:10px;border:0;background:var(--stop);color:var(--stop-ink);display:grid;place-items:center}
+.np .npbar{grid-column:1/-1;height:6px;border-radius:3px;background:var(--border);overflow:hidden}
+.np .npbar i{display:block;height:100%;width:calc(var(--p,0) * 100%);background:var(--c)}
+.pad{
+  background:linear-gradient(180deg,rgba(255,255,255,.22),rgba(255,255,255,0) 58%),var(--c);
+  box-shadow:0 5px 0 rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.4);
+}
+.eq{display:inline-flex;align-items:flex-end;gap:3px;height:20px;width:22px}
+.eq i{flex:1;background:currentColor;border-radius:1px;height:40%;animation:eq .8s ease-in-out infinite alternate}
+.eq i:nth-child(2){animation-delay:.2s}
+.eq i:nth-child(3){animation-delay:.4s}
+@keyframes eq{from{height:20%}to{height:100%}}
+@media (prefers-reduced-motion: reduce){.eq i{animation:none;height:70%}}
+@media (min-width:900px){
+  :root{--ps:170px}
+  .brand{font-size:26px}
+  .mix{justify-content:flex-start}
+  .mix .vol{flex:0 1 420px}
+  .mix .stop{margin-left:auto}
+  .layout{display:grid;grid-template-columns:300px 1fr;gap:16px;padding:16px;align-items:start}
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:20px;box-shadow:0 2px 0 var(--border)}
+  .panel .ph{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-bottom:1px solid var(--border);font-weight:800;font-size:17px}
+  .now{display:block;position:sticky;top:calc(var(--hh,150px) + env(safe-area-inset-top,0px) + 16px);max-height:calc(100vh - var(--hh,150px) - 48px);overflow:auto}
+  .board .grid{padding:16px}
+}
 </style>
 </head>
 <body>
@@ -192,8 +228,16 @@ body.live .proj svg{display:none}
     <span class="info" id="info"></span>
   </div>
 </header>
-<main id="grid" class="grid"></main>
-<div id="empty" class="empty" hidden>
+<div class="layout">
+  <aside class="panel now" id="now" aria-label="Reproductores">
+    <div class="ph"><span>Reproductores</span><span class="badge" id="nowCount">0</span></div>
+    <div class="nowlist" id="nowList"></div>
+    <p class="nowempty" id="nowEmpty">Nada sonando. Cuando toques un sonido aparece aquí, con su tiempo restante y un botón para detenerlo.</p>
+  </aside>
+  <section class="panel board">
+    <div class="ph"><span id="boardT">Todos los sonidos</span><span class="badge" id="boardN">0</span></div>
+    <main id="grid" class="grid"></main>
+    <div id="empty" class="empty" hidden>
   <h2>Aquí van tus sonidos</h2>
   <p>Todavía no hay ninguno. Se guardan en este dispositivo y funcionan sin internet.</p>
   <ol>
@@ -201,6 +245,8 @@ body.live .proj svg{display:none}
     <li><span class="n">2</span><span>Toca cada botón para ponerle nombre y color, y ordénalos por secciones.</span></li>
     <li><span class="n">3</span><span>Pasa a <b>En vivo</b> y toca los botones durante la función.</span></li>
   </ol>
+</div>
+  </section>
 </div>
 <div id="modal" role="dialog" aria-modal="true"></div>
 <div id="toast" role="status"></div>
@@ -216,6 +262,7 @@ const STREAM_LIMIT=3000000; // archivos de más de ~3 MB se reproducen por strea
 const MODES={fx:"Efecto: suena cada vez que lo tocas (risas, golpes)",loop:"Se repite: un toque lo inicia y otro lo detiene",toggle:"Música o pista larga: un toque inicia y otro detiene"};
 const ALL="*";
 const ICONS={
+  eq:'<span class="eq" aria-hidden="true"><i></i><i></i><i></i></span>',
   play:'<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M7 4.5v15l13-7.5z" fill="currentColor"/></svg>',
   stop:'<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M6 6h12v12H6z" fill="currentColor"/></svg>',
   loop:'<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M17 2l4 4-4 4M3 11V9a3 3 0 013-3h15M7 22l-4-4 4-4M21 13v2a3 3 0 01-3 3H3" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
@@ -462,6 +509,8 @@ function renderTabs(){
 function renderGrid(){
   const grid=$("#grid");grid.innerHTML="";padEls.clear();
   $("#empty").hidden=sounds.length>0;
+  $("#boardT").textContent=tab===ALL?"Todos los sonidos":tab;
+  $("#boardN").textContent=String(visible().length);
   visible().forEach(s=>{
     const el=h("button",{class:"pad",type:"button",style:"--c:"+s.color+";--ink:"+inkFor(s.color)},
       h("span",{class:"nm",textContent:s.name}),
@@ -474,16 +523,18 @@ function renderGrid(){
 }
 function renderAll(){renderTabs();renderGrid()}
 function paintPad(id){
+  scheduleNow();
   const el=padEls.get(id);if(!el)return;
   const s=sounds.find(x=>x.id===id);if(!s)return;
   const on=isActive(id);
   el.classList.toggle("on",on);
   el.classList.toggle("lp",s.mode==="loop"&&on);
   const ico=el.querySelector(".ico");
-  ico.innerHTML=s.mode==="loop"?ICONS.loop:(on&&s.mode==="toggle"?ICONS.stop:ICONS.play);
+  ico.innerHTML=s.mode==="loop"?ICONS.loop:(on?(s.mode==="toggle"?ICONS.stop:ICONS.eq):ICONS.play);
   if(!on)el.style.setProperty("--p",0);
 }
 setInterval(()=>{
+  tickNow();
   voices.forEach((set,id)=>{
     const el=padEls.get(id);if(!el||!set.size)return;
     let p=0;
@@ -510,6 +561,57 @@ document.addEventListener("keydown",e=>{
   if(e.code==="Space"){e.preventDefault();stopAll()}
   else if(/^[1-9]$/.test(e.key)){const s=visible()[+e.key-1];if(s)trigger(s)}
 });
+
+/* ---------- Reproductores (lo que está sonando) ---------- */
+let nowQ=false;
+function scheduleNow(){if(nowQ)return;nowQ=true;requestAnimationFrame(()=>{nowQ=false;renderNow()})}
+const fmt=sec=>{sec=Math.max(0,Math.round(sec));return Math.floor(sec/60)+":"+String(sec%60).padStart(2,"0")};
+function playInfo(id){
+  const set=voices.get(id);let best=null;
+  if(set)set.forEach(v=>{
+    if(v.stopping)return;
+    let p=0,rem=null;
+    if(v.a&&v.a.duration){p=v.a.currentTime/v.a.duration;rem=v.a.duration-v.a.currentTime}
+    else if(v.n&&v.dur){const el=ctx.currentTime-v.t0;p=(el%v.dur)/v.dur;rem=v.dur-el}
+    if(!best||p>best.p)best={p,rem};
+  });
+  return best;
+}
+function renderNow(){
+  const box=$("#nowList");if(!box)return;box.innerHTML="";
+  let n=0;
+  voices.forEach((set,id)=>{
+    const act=[...set].filter(v=>!v.stopping);if(!act.length)return;
+    const s=sounds.find(x=>x.id===id);if(!s)return;
+    n++;
+    const x=h("button",{class:"npx",type:"button",aria:{label:"Detener "+s.name},onclick:()=>stopSound(id,s.fade)});
+    x.innerHTML=ICONS.stop;
+    const row=h("div",{class:"np",style:"--c:"+s.color},
+      h("span",{class:"dot"}),
+      h("span",{class:"npn",textContent:s.name+(act.length>1?" ×"+act.length:"")}),
+      h("span",{class:"npt"}),x,
+      h("div",{class:"npbar"},h("i")));
+    row.dataset.id=id;box.append(row);
+  });
+  $("#nowCount").textContent=String(n);
+  $("#nowEmpty").style.display=n?"none":"";
+  tickNow();
+}
+function tickNow(){
+  document.querySelectorAll(".np").forEach(row=>{
+    const s=sounds.find(x=>x.id===row.dataset.id),i=playInfo(row.dataset.id);
+    if(!s||!i)return;
+    row.style.setProperty("--p",i.p.toFixed(3));
+    row.querySelector(".npt").textContent=s.mode==="loop"?"loop":fmt(i.rem);
+  });
+}
+// Altura de la cabecera, para que el panel lateral se quede justo debajo
+(function(){
+  const hd=document.querySelector("header");
+  const f=()=>document.documentElement.style.setProperty("--hh",hd.offsetHeight+"px");
+  f();addEventListener("resize",f);
+  if(window.ResizeObserver)new ResizeObserver(f).observe(hd);
+})();
 
 /* ---------- Ventanas ---------- */
 const modal=$("#modal");
