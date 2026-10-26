@@ -7,6 +7,10 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="SoundClick">
 <title>SoundClick</title>
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
 <style>
 :root{
   --bg:#eef1f5; --panel:#ffffff; --text:#1b2430; --muted:#566476; --border:#d3dae4; --field:#f2f4f8;
@@ -286,7 +290,7 @@ const PALETTE=["#ef476f","#ff8c1a","#ffc933","#2ec4b6","#3a86ff","#8d6cff","#ff6
 const STREAM_LIMIT=3000000; // archivos de más de ~3 MB se reproducen por streaming
 const MODES={fx:"Efecto: suena cada vez que lo tocas (risas, golpes)",loop:"Se repite: un toque lo inicia y otro lo detiene",toggle:"Música o pista larga: un toque inicia y otro detiene"};
 const ALL="*";
-const APP_VERSION="2026-10-26-c";
+const APP_VERSION="2026-10-26-d";
 const ICONS={
   eq:'<span class="eq" aria-hidden="true"><i></i><i></i><i></i></span>',
   play:'<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M7 4.5v15l13-7.5z" fill="currentColor"/></svg>',
