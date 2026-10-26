@@ -195,6 +195,29 @@ body.live .proj svg{display:none}
   .now{display:block;position:sticky;top:calc(var(--hh,150px) + env(safe-area-inset-top,0px) + 16px);max-height:calc(100vh - var(--hh,150px) - 48px);overflow:auto}
   .board .grid{padding:16px}
 }
+
+/* ---- Reproductores en celular: barra inferior que se abre ---- */
+.now .ph{background:transparent;border:0;width:100%;color:inherit;font-family:inherit;text-align:left}
+@media (max-width:899px){
+  body.live{padding-bottom:calc(68px + env(safe-area-inset-bottom,0px))}
+  body.live .now{
+    display:flex;flex-direction:column;position:fixed;left:8px;right:8px;bottom:calc(8px + env(safe-area-inset-bottom,0px));
+    z-index:12;background:var(--panel);border:1px solid var(--border);border-radius:18px;
+    box-shadow:0 6px 24px var(--shadow);max-height:62vh;overflow:hidden;
+  }
+  .now .ph{display:flex;align-items:center;gap:10px;padding:12px 14px;font-weight:800;font-size:16px;touch-action:manipulation}
+  .now .nowsum{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-weight:600;font-size:14px}
+  .now .chev{flex:none;transition:transform .15s}
+  .now.open .chev{transform:rotate(180deg)}
+  .now .nowlist,.now .nowempty{display:none}
+  .now.open .nowlist{display:flex;overflow:auto;border-top:1px solid var(--border)}
+  .now.open .nowempty{display:block;border-top:1px solid var(--border);padding-top:12px}
+  #toast{bottom:calc(80px + env(safe-area-inset-bottom,0px))}
+}
+@media (min-width:900px){
+  .now .nowsum,.now .chev{display:none}
+  .now .ph{pointer-events:none;border-bottom:1px solid var(--border)}
+}
 </style>
 </head>
 <body>
@@ -230,7 +253,7 @@ body.live .proj svg{display:none}
 </header>
 <div class="layout">
   <aside class="panel now" id="now" aria-label="Reproductores">
-    <div class="ph"><span>Reproductores</span><span class="badge" id="nowCount">0</span></div>
+    <button class="ph" id="nowToggle" type="button" aria-expanded="false" aria-controls="nowList"><span class="ptitle">Reproductores</span><span class="nowsum" id="nowSum"></span><span class="badge" id="nowCount">0</span><svg class="chev" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M6 15l6-6 6 6" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
     <div class="nowlist" id="nowList"></div>
     <p class="nowempty" id="nowEmpty">Nada sonando. Cuando toques un sonido aparece aquí, con su tiempo restante y un botón para detenerlo.</p>
   </aside>
@@ -579,11 +602,11 @@ function playInfo(id){
 }
 function renderNow(){
   const box=$("#nowList");if(!box)return;box.innerHTML="";
-  let n=0;
+  let n=0;const names=[];
   voices.forEach((set,id)=>{
     const act=[...set].filter(v=>!v.stopping);if(!act.length)return;
     const s=sounds.find(x=>x.id===id);if(!s)return;
-    n++;
+    n++;names.push(s.name);
     const x=h("button",{class:"npx",type:"button",aria:{label:"Detener "+s.name},onclick:()=>stopSound(id,s.fade)});
     x.innerHTML=ICONS.stop;
     const row=h("div",{class:"np",style:"--c:"+s.color},
@@ -594,6 +617,7 @@ function renderNow(){
     row.dataset.id=id;box.append(row);
   });
   $("#nowCount").textContent=String(n);
+  $("#nowSum").textContent=names.join(", ");
   $("#nowEmpty").style.display=n?"none":"";
   tickNow();
 }
@@ -703,6 +727,7 @@ $("#ps").oninput=e=>{document.documentElement.style.setProperty("--ps",e.target.
 $("#file").onchange=e=>{unlock();addFiles(e.target.files);e.target.value=""};
 $("#bBeep").onclick=beep;
 $("#bProj").onclick=openProjects;
+$("#nowToggle").onclick=()=>{const a=$("#now"),o=!a.classList.contains("open");a.classList.toggle("open",o);$("#nowToggle").setAttribute("aria-expanded",String(o))};
 $("#bMore").onclick=()=>{const m=$("#more"),abrir=m.hidden;m.hidden=!abrir;$("#bMore").setAttribute("aria-expanded",String(abrir))};
 $("#bAddCat").onclick=async()=>{const n=await ask("Nueva sección","","Crear");if(n){tab=addCat(n);renderAll()}};
 $("#bRenCat").onclick=async()=>{
