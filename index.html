@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="SoundClick">
+<title>SoundClick</title>
+<style>
+:root{
+  --bg:#eef1f5; --panel:#ffffff; --text:#1b2430; --muted:#566476; --border:#d3dae4; --field:#f2f4f8;
+  --accent:#e8452c; --accent-ink:#ffffff; --stop:#c9272d; --stop-ink:#ffffff; --shadow:rgba(20,30,45,.18);
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#11151b; --panel:#1a2029; --text:#eef2f6; --muted:#9aa7b6; --border:#2b3441; --field:#232b36;
+    --accent:#ff7a5c; --accent-ink:#1b0f0b; --stop:#e5484d; --stop-ink:#ffffff; --shadow:rgba(0,0,0,.55);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#11151b; --panel:#1a2029; --text:#eef2f6; --muted:#9aa7b6; --border:#2b3441; --field:#232b36;
+  --accent:#ff7a5c; --accent-ink:#1b0f0b; --stop:#e5484d; --stop-ink:#ffffff; --shadow:rgba(0,0,0,.55);
+  color-scheme:dark;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{
+  margin:0;background:var(--bg);color:var(--text);min-height:100vh;
+  font-family:ui-rounded,"SF Pro Rounded","Nunito","Avenir Next",system-ui,-apple-system,"Segoe UI",sans-serif;
+  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
+}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--panel);z-index:10}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+header{
+  position:sticky;top:env(safe-area-inset-top,0px);z-index:11;
+  background:var(--panel);border-bottom:1px solid var(--border);
+  padding:10px 14px 10px;display:flex;flex-direction:column;gap:10px;
+}
+.row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.brand{font-weight:800;font-size:24px;letter-spacing:-.01em;margin-right:auto}
+.brand b{color:var(--accent);font-weight:800}
+.seg{display:inline-flex;background:var(--field);border-radius:14px;padding:4px;gap:4px}
+.seg button{border:0;background:transparent;padding:9px 16px;font-weight:700;font-size:16px;border-radius:10px;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--text);color:var(--bg)}
+.ghost{border:1px solid var(--border);background:transparent;border-radius:12px;padding:9px 13px;font-size:15px;font-weight:600}
+.ghost:focus-visible,.seg button:focus-visible,.tab:focus-visible,.pad:focus-visible,.stop:focus-visible,.iconbtn:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.vol{display:flex;align-items:center;gap:10px;flex:1;min-width:190px}
+.vol label{font-size:15px;color:var(--muted);white-space:nowrap}
+input[type=range]{flex:1;accent-color:var(--accent);min-width:80px;height:30px}
+.stop{
+  background:var(--stop);color:var(--stop-ink);border:0;border-radius:14px;
+  padding:12px 20px;font-weight:800;font-size:17px;box-shadow:0 4px 0 rgba(0,0,0,.28);touch-action:manipulation;
+}
+.stop:active{transform:translateY(3px);box-shadow:0 1px 0 rgba(0,0,0,.28)}
+.tabs{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:none;border:0;background:var(--field);border-radius:12px;padding:9px 16px;font-weight:700;font-size:16px;color:var(--muted)}
+.tab[aria-selected="true"]{background:var(--accent);color:var(--accent-ink)}
+.tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.tools .info{margin-left:auto;font-size:14px;color:var(--muted)}
+.tip{margin:0;font-size:15px;color:var(--muted)}
+body.live .tools,body.live .editonly,body.live .tip{display:none}
+.grid{display:grid;gap:12px;padding:14px;grid-template-columns:repeat(auto-fill,minmax(var(--ps,150px),1fr))}
+.pad{
+  position:relative;overflow:hidden;min-height:calc(var(--ps,150px) * .74);
+  border:0;border-radius:16px;background:var(--c);color:var(--ink);text-align:left;
+  padding:14px 14px 18px;display:flex;flex-direction:column;justify-content:space-between;gap:10px;
+  box-shadow:0 5px 0 rgba(0,0,0,.3);
+  transition:transform .06s ease, box-shadow .06s ease;
+  touch-action:manipulation;
+}
+body.live .pad{touch-action:none}
+.pad:active{transform:translateY(4px);box-shadow:0 1px 0 rgba(0,0,0,.3)}
+.pad .nm{font-weight:800;font-size:clamp(17px,2.5vw,23px);line-height:1.15;overflow-wrap:anywhere}
+.pad .meta{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;opacity:.9}
+.pad .meta .sec{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pad .bar{position:absolute;left:0;bottom:0;height:7px;width:calc(var(--p,0) * 100%);background:var(--ink);opacity:.75}
+.pad.on{box-shadow:0 0 0 4px var(--text),0 5px 0 4px rgba(0,0,0,.3)}
+.pad.on.lp .bar{width:100%;animation:pulse 1s ease-in-out infinite alternate}
+.pad.err{background:var(--muted);color:#fff}
+@keyframes pulse{from{opacity:.2}to{opacity:.8}}
+@media (prefers-reduced-motion: reduce){.pad.on.lp .bar{animation:none;opacity:.7}}
+.empty{margin:28px auto;max-width:520px;padding:0 18px}
+.empty h2{margin:0 0 6px;font-size:24px}
+.empty p{margin:0 0 16px;color:var(--muted);line-height:1.5}
+.empty ol{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:10px}
+.empty li{display:flex;gap:12px;align-items:flex-start;background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:12px 14px;line-height:1.4}
+.empty li span.n{flex:none;width:28px;height:28px;border-radius:50%;background:var(--accent);color:var(--accent-ink);font-weight:800;display:grid;place-items:center}
+.file-btn{display:inline-block;background:var(--accent);color:var(--accent-ink);font-weight:800;border-radius:12px;padding:10px 16px;font-size:16px;cursor:pointer}
+.file-btn input{display:none}
+#toast{
+  position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);
+  background:var(--text);color:var(--bg);padding:11px 16px;border-radius:12px;font-size:15px;line-height:1.35;
+  z-index:40;max-width:90vw;display:none;text-align:center;
+}
+#modal{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:30;display:none;align-items:flex-end;justify-content:center}
+#modal.open{display:flex}
+.sheet{
+  background:var(--panel);width:100%;max-width:520px;max-height:92vh;overflow:auto;
+  border-radius:22px 22px 0 0;padding:18px 18px calc(18px + env(safe-area-inset-bottom,0px));
+  display:flex;flex-direction:column;gap:14px;-webkit-user-select:text;user-select:text;
+}
+@media (min-width:700px){#modal{align-items:center}.sheet{border-radius:22px}}
+.sheet h3{margin:0;font-size:20px}
+.sheet p{margin:0;color:var(--muted);line-height:1.45}
+.field{display:flex;flex-direction:column;gap:6px}
+.field>label{font-size:15px;color:var(--muted);font-weight:600}
+.field input[type=text],.field select{border:1px solid var(--border);background:var(--field);border-radius:12px;padding:12px;font-size:17px;width:100%}
+.swatches{display:flex;gap:10px;flex-wrap:wrap}
+.sw{width:40px;height:40px;border-radius:50%;border:3px solid transparent;background:var(--c);box-shadow:0 0 0 1px var(--border)}
+.sw[aria-pressed="true"]{border-color:var(--text)}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+.btns .grow{flex:1}
+.primary{background:var(--accent);color:var(--accent-ink);border:0;border-radius:12px;padding:12px 18px;font-weight:800;font-size:16px}
+.danger{border:1px solid var(--stop);color:var(--stop);background:transparent;border-radius:12px;padding:12px 16px;font-weight:700;font-size:16px}
+.danger.armed{background:var(--stop);color:var(--stop-ink)}
+.hint{font-size:14px;color:var(--muted);line-height:1.4}
+
+/* ---- Vista compacta para celular ---- */
+header{gap:8px;padding:8px 12px}
+.brand{font-size:22px;min-width:0}
+.seg button{padding:8px 13px;font-size:15px}
+.iconbtn{display:grid;place-items:center;width:42px;height:42px;border:1px solid var(--border);background:transparent;border-radius:12px;color:var(--text);flex:none}
+.mix{flex-wrap:nowrap}
+.mix .vol{min-width:0}
+.vol label{display:flex;align-items:center;color:var(--muted)}
+input[type=range]{min-width:60px}
+.stop{padding:11px 16px;font-size:16px;white-space:nowrap;flex:none}
+.tab{padding:8px 14px;font-size:15px}
+.tools .file-btn,.tools .ghost{font-size:15px;padding:9px 13px}
+.more{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px;background:var(--field);border-radius:12px}
+.more[hidden]{display:none}
+.more .vol{flex:1 1 100%}
+.more .info{flex:1 1 100%;margin:0;font-size:14px;color:var(--muted)}
+.grid{padding:12px;gap:10px}
+@media (max-width:400px){
+  .brand{font-size:20px}
+  .seg button{padding:8px 11px;font-size:14px}
+}
+@media (max-height:520px){header{position:static}}
+
+/* ---- Obras ---- */
+.brandbox{margin-right:auto;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:1px}
+.brandbox .brand{margin:0}
+.proj{border:0;background:transparent;padding:2px 0;font-size:14px;font-weight:600;color:var(--muted);display:inline-flex;align-items:center;gap:4px;max-width:170px;text-align:left}
+.proj span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.proj:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:6px}
+body.live .proj{pointer-events:none}
+body.live .proj svg{display:none}
+.plist{display:flex;flex-direction:column;gap:8px}
+.pitem{display:flex;justify-content:space-between;align-items:center;gap:10px;border:2px solid var(--border);background:transparent;border-radius:12px;padding:12px 14px;text-align:left;font-size:17px;font-weight:700}
+.pitem[aria-pressed="true"]{border-color:var(--accent);background:var(--field)}
+.pitem .pn{overflow-wrap:anywhere}
+.pitem .pc{font-size:14px;color:var(--muted);font-weight:600;white-space:nowrap}
+.danger:disabled{opacity:.45}
+</style>
+</head>
+<body>
+<header>
+  <div class="row top">
+    <div class="brandbox">
+      <div class="brand">Sound<b>Click</b></div>
+      <button class="proj" id="bProj" aria-label="Cambiar de obra"><span id="projName"></span><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    </div>
+    <div class="seg" role="group" aria-label="Modo">
+      <button id="bEdit" aria-pressed="true">Preparar</button>
+      <button id="bLive" aria-pressed="false">En vivo</button>
+    </div>
+    <button class="iconbtn" id="bTheme" aria-label="Cambiar entre tema claro y oscuro"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 3a9 9 0 010 18z" fill="currentColor"/></svg></button>
+  </div>
+  <div class="row mix">
+    <div class="vol"><label for="mv" aria-label="Volumen general"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9z" fill="currentColor"/><path d="M16 8.5a5 5 0 010 7M18.5 6a8.5 8.5 0 010 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></label><input id="mv" type="range" min="0" max="1" step="0.01" value="1"></div>
+    <button class="stop" id="bStop">Parar todo</button>
+  </div>
+  <div class="tabs" id="tabs" role="tablist"></div>
+  <div class="tools editonly">
+    <label class="file-btn">Agregar sonidos<input id="file" type="file" accept="audio/*,.mp3,.m4a,.wav,.aac,.ogg" multiple></label>
+    <button class="ghost" id="bAddCat">Nueva sección</button>
+    <button class="ghost" id="bMore" aria-expanded="false" aria-controls="more">Más opciones</button>
+  </div>
+  <div class="more editonly" id="more" hidden>
+    <div class="vol"><label for="ps">Tamaño de botones</label><input id="ps" type="range" min="100" max="260" step="10" value="150"></div>
+    <button class="ghost" id="bRenCat">Renombrar sección</button>
+    <button class="ghost" id="bDelCat">Borrar sección</button>
+    <button class="ghost" id="bBeep">Probar sonido</button>
+    <span class="info" id="info"></span>
+  </div>
+</header>
+<main id="grid" class="grid"></main>
+<div id="empty" class="empty" hidden>
+  <h2>Aquí van tus sonidos</h2>
+  <p>Todavía no hay ninguno. Se guardan en este dispositivo y funcionan sin internet.</p>
+  <ol>
+    <li><span class="n">1</span><span>Toca <b>Agregar sonidos</b> y elige tus audios (puedes elegir varios a la vez).</span></li>
+    <li><span class="n">2</span><span>Toca cada botón para ponerle nombre y color, y ordénalos por secciones.</span></li>
+    <li><span class="n">3</span><span>Pasa a <b>En vivo</b> y toca los botones durante la función.</span></li>
+  </ol>
+</div>
+<div id="modal" role="dialog" aria-modal="true"></div>
+<div id="toast" role="status"></div>
+
+<script>
+(function(){
+"use strict";
+const $ = s => document.querySelector(s);
+const h = (t,a={},...c)=>{const e=document.createElement(t);for(const k in a){if(k==="class")e.className=a[k];else if(k.startsWith("on"))e.addEventListener(k.slice(2),a[k]);else if(k==="style")e.style.cssText=a[k];else if(k==="aria"){for(const x in a[k])e.setAttribute("aria-"+x,a[k][x]);}else e[k]=a[k];}c.flat().forEach(x=>{if(x!=null)e.append(x)});return e;};
+const debounce=(f,ms)=>{let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>f(...a),ms)}};
+const PALETTE=["#ef476f","#ff8c1a","#ffc933","#2ec4b6","#3a86ff","#8d6cff","#ff6fb5","#6bbf59"];
+const STREAM_LIMIT=3000000; // archivos de más de ~3 MB se reproducen por streaming
+const MODES={fx:"Efecto: suena cada vez que lo tocas (risas, golpes)",loop:"Se repite: un toque lo inicia y otro lo detiene",toggle:"Música o pista larga: un toque inicia y otro detiene"};
+const ALL="*";
+const ICONS={
+  play:'<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M7 4.5v15l13-7.5z" fill="currentColor"/></svg>',
+  stop:'<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M6 6h12v12H6z" fill="currentColor"/></svg>',
+  loop:'<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M17 2l4 4-4 4M3 11V9a3 3 0 013-3h15M7 22l-4-4 4-4M21 13v2a3 3 0 01-3 3H3" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+};
+function inkFor(hex){const n=parseInt(hex.slice(1),16),r=n>>16,g=(n>>8)&255,b=n&255;return(0.299*r+0.587*g+0.114*b)>140?"#1b1b1b":"#ffffff"}
+
+let sounds=[], cats=[], tab=ALL, live=false, masterVol=1, dbOK=true, db=null;
+
+/* ---------- Avisos ---------- */
+let toastT;
+function toast(msg,ms=2600){const t=$("#toast");t.textContent=msg;t.style.display="block";clearTimeout(toastT);toastT=setTimeout(()=>t.style.display="none",ms)}
+
+/* ---------- IndexedDB ---------- */
+function openDB(){return new Promise((res,rej)=>{
+  let r;try{r=indexedDB.open("payasobox",1)}catch(e){return rej(e)}
+  r.onupgradeneeded=()=>{const d=r.result;d.createObjectStore("sounds",{keyPath:"id"});d.createObjectStore("meta")};
+  r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);r.onblocked=()=>rej(new Error("blocked"));
+})}
+function tx(store,mode,fn){return new Promise((res,rej)=>{
+  if(!dbOK)return res();
+  try{
+    const t=db.transaction(store,mode);const req=fn(t.objectStore(store));
+    t.oncomplete=()=>res(req&&req.result);t.onerror=()=>rej(t.error);t.onabort=()=>rej(t.error);
+  }catch(e){rej(e)}
+})}
+const dbAll=()=>tx("sounds","readonly",s=>s.getAll());
+const dbPut=s=>tx("sounds","readwrite",st=>st.put(s)).catch(()=>toast("No se pudo guardar. Revisa el espacio del dispositivo."));
+const dbDel=id=>tx("sounds","readwrite",st=>st.delete(id));
+let projects=[], curProj=null;
+const loadMeta=k=>tx("meta","readonly",st=>st.get(k));
+const saveCats=()=>tx("meta","readwrite",st=>st.put(cats,"cats:"+curProj)).catch(()=>{});
+const saveProjects=()=>tx("meta","readwrite",st=>st.put(projects,"projects")).catch(()=>{});
+const saveCur=()=>tx("meta","readwrite",st=>st.put(curProj,"current")).catch(()=>{});
+
+/* ---------- Audio ---------- */
+let ctx=null, master=null, silentEl=null, primed=false;
+const bufs=new Map(), urls=new Map(), voices=new Map();
+
+function ensureCtx(){
+  if(!ctx){
+    const AC=window.AudioContext||window.webkitAudioContext;
+    ctx=new AC();master=ctx.createGain();master.gain.value=masterVol;master.connect(ctx.destination);
+  }
+  return ctx;
+}
+function silenceURL(){
+  const rate=8000,n=rate,buf=new Uint8Array(44+n),dv=new DataView(buf.buffer);
+  const w=(o,s)=>{for(let i=0;i<s.length;i++)buf[o+i]=s.charCodeAt(i)};
+  w(0,"RIFF");dv.setUint32(4,36+n,true);w(8,"WAVEfmt ");dv.setUint32(16,16,true);dv.setUint16(20,1,true);
+  dv.setUint16(22,1,true);dv.setUint32(24,rate,true);dv.setUint32(28,rate,true);dv.setUint16(32,1,true);dv.setUint16(34,8,true);
+  w(36,"data");dv.setUint32(40,n,true);buf.fill(128,44);
+  return URL.createObjectURL(new Blob([buf],{type:"audio/wav"}));
+}
+/* Activa el sonido. Debe llamarse dentro de un toque o clic del usuario (sin await antes). */
+function unlock(){
+  ensureCtx();
+  try{if(navigator.audioSession)navigator.audioSession.type="playback"}catch(e){}
+  if(!silentEl){
+    // Un audio silencioso en bucle hace que iOS trate la página como reproducción multimedia
+    // y el sonido salga aunque el interruptor de silencio esté activado.
+    silentEl=new Audio(silenceURL());silentEl.loop=true;silentEl.setAttribute("playsinline","");
+  }
+  if(silentEl.paused){const p=silentEl.play();if(p&&p.catch)p.catch(()=>{})}
+  if(ctx.state!=="running"){const r=ctx.resume();if(r&&r.catch)r.catch(()=>{})}
+  if(!primed){
+    try{const b=ctx.createBuffer(1,1,22050),s=ctx.createBufferSource();s.buffer=b;s.connect(ctx.destination);s.start(0);primed=true}catch(e){}
+  }
+}
+// En pantallas táctiles solo cuentan como permiso el final del toque y el clic, no el inicio.
+["pointerdown","pointerup","touchend","click","keydown"].forEach(ev=>{
+  document.addEventListener(ev,()=>{if(!ctx||ctx.state!=="running"||!silentEl||silentEl.paused)unlock()},{capture:true,passive:true});
+});
+
+function beep(){
+  unlock();ensureCtx();
+  const t=ctx.currentTime,o=ctx.createOscillator(),g=ctx.createGain();
+  o.type="sine";o.frequency.value=660;
+  g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(0.4,t+0.03);g.gain.exponentialRampToValueAtTime(0.0001,t+0.6);
+  o.connect(g);g.connect(master);o.start(t);o.stop(t+0.65);
+  toast("¿Escuchaste el pitido? Si no, apaga el modo silencio del teléfono, sube el volumen y abre la página en Safari o Chrome.",6000);
+}
+
+async function prepare(s){
+  s.err=false;
+  if(s.stream){urls.set(s.id,URL.createObjectURL(s.blob));return}
+  try{
+    const ab=await s.blob.arrayBuffer();
+    const b=await ensureCtx().decodeAudioData(ab);
+    bufs.set(s.id,b);
+  }catch(e){s.err=true}
+}
+function unprepare(id){bufs.delete(id);const u=urls.get(id);if(u){URL.revokeObjectURL(u);urls.delete(id)}}
+
+function voiceSet(id){let s=voices.get(id);if(!s){s=new Set();voices.set(id,s)}return s}
+function isActive(id){const s=voices.get(id);return !!s&&[...s].some(v=>!v.stopping)}
+function endVoice(v){
+  const set=voices.get(v.id);if(set)set.delete(v);
+  try{v.g.disconnect()}catch(e){}
+  if(v.a){try{v.a.pause();v.a.removeAttribute("src");v.a.load()}catch(e){}}
+  paintPad(v.id);
+}
+function stopVoice(v,fade){
+  if(v.stopping)return;v.stopping=true;
+  const f=Math.max(fade,0.03),t=ctx.currentTime;
+  v.g.gain.cancelScheduledValues(t);
+  v.g.gain.setValueAtTime(v.g.gain.value,t);
+  v.g.gain.linearRampToValueAtTime(0,t+f);
+  setTimeout(()=>{try{if(v.n)v.n.stop()}catch(e){}endVoice(v)},f*1000+60);
+}
+function stopSound(id,fade){const set=voices.get(id);if(set)[...set].forEach(v=>stopVoice(v,fade))}
+function stopAll(fade=1.2){if(!ctx)return;voices.forEach(set=>[...set].forEach(v=>stopVoice(v,fade)))}
+
+function startVoice(s){
+  const g=ctx.createGain();g.gain.value=s.vol;g.connect(master);
+  let v;
+  if(s.stream){
+    const url=urls.get(s.id);if(!url)return;
+    const a=new Audio(url);a.loop=s.mode==="loop";a.setAttribute("playsinline","");
+    const n=ctx.createMediaElementSource(a);n.connect(g);
+    v={id:s.id,g,a};
+    a.onended=()=>endVoice(v);
+    a.play().catch(()=>{endVoice(v);toast("No se pudo reproducir “"+s.name+"”.")});
+  }else{
+    const b=bufs.get(s.id);if(!b)return;
+    const n=ctx.createBufferSource();n.buffer=b;n.loop=s.mode==="loop";n.connect(g);
+    v={id:s.id,g,n,t0:ctx.currentTime,dur:b.duration};
+    n.onended=()=>endVoice(v);
+    n.start();
+  }
+  voiceSet(s.id).add(v);paintPad(s.id);
+}
+function play(s){
+  unlock();
+  if(ctx.state==="running"){startVoice(s);return}
+  // Si el sonido aún no está activo, espera un instante a que el sistema lo permita.
+  Promise.race([ctx.resume(),new Promise((_,rej)=>setTimeout(rej,450))])
+    .then(()=>startVoice(s))
+    .catch(()=>{toast("Toca otra vez para activar el sonido.",2500)});
+}
+function trigger(s){
+  if(s.err){toast("Este archivo no se pudo leer. Prueba con MP3 o M4A.");return}
+  if(s.mode==="fx"){
+    if(s.stream)stopSound(s.id,0.04);
+    play(s);
+  }else{
+    if(isActive(s.id))stopSound(s.id,s.fade);else play(s);
+  }
+}
+
+/* ---------- Datos ---------- */
+function allCats(){const set=new Set(cats);sounds.forEach(s=>set.add(s.cat));return[...set]}
+function visible(){
+  const l=tab===ALL?sounds.slice():sounds.filter(s=>s.cat===tab);
+  return l.sort((a,b)=>a.order-b.order);
+}
+function addCat(n){n=n.trim();if(n&&!allCats().includes(n)){cats.push(n);saveCats()}return n}
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+
+async function addFiles(files){
+  const list=[...files].filter(f=>f.type.startsWith("audio/")||/\.(mp3|m4a|wav|aac|ogg|flac|mp4|caf)$/i.test(f.name));
+  if(!list.length){toast("No encontré archivos de audio.");return}
+  const cat=tab===ALL?"General":tab;if(tab===ALL)addCat("General");
+  let i=0;
+  for(const f of list){
+    i++;toast("Importando "+i+" de "+list.length+"…",60000);
+    const stream=f.size>STREAM_LIMIT;
+    const color=PALETTE[sounds.length%PALETTE.length];
+    const s={id:uid(),proj:curProj,name:f.name.replace(/\.[^.]+$/,""),cat,color,mode:stream?"toggle":"fx",vol:1,fade:0.8,
+      blob:new Blob([f],{type:f.type||"audio/mpeg"}),stream,order:Date.now()+i};
+    await dbPut(s);await prepare(s);sounds.push(s);renderAll();
+  }
+  toast(list.length===1?"Sonido agregado":list.length+" sonidos agregados");
+  updateInfo();
+}
+
+/* ---------- Obras ---------- */
+async function loadProject(id){
+  stopAll(0.05);
+  sounds.forEach(s=>unprepare(s.id));
+  curProj=id;saveCur();
+  const all=(await dbAll())||[];
+  sounds=all.filter(s=>s.proj===id);
+  cats=(await loadMeta("cats:"+id))||[];
+  sounds.forEach(s=>{if(s.order==null)s.order=Date.now()});
+  tab=ALL;renderAll();updateInfo();
+  for(const s of sounds){await prepare(s)}
+  renderGrid();
+}
+async function wipeSounds(list){for(const s of list){unprepare(s.id);await dbDel(s.id)}}
+async function openProjects(){
+  const all=(await dbAll())||[];
+  const counts={};all.forEach(s=>{counts[s.proj]=(counts[s.proj]||0)+1});
+  const cur=projects.find(p=>p.id===curProj);
+  const items=projects.map(p=>{
+    const n=counts[p.id]||0;
+    return h("button",{class:"pitem",type:"button",aria:{pressed:String(p.id===curProj)},onclick:async()=>{closeModal();if(p.id!==curProj)await loadProject(p.id)}},
+      h("span",{class:"pn",textContent:p.name}),
+      h("span",{class:"pc",textContent:n+(n===1?" sonido":" sonidos")}));
+  });
+  const newB=h("button",{class:"primary grow",type:"button",textContent:"Nueva obra",onclick:async()=>{
+    const n=await ask("Nombre de la obra nueva","","Crear");if(!n)return;
+    const p={id:uid(),name:n};projects.push(p);await saveProjects();await loadProject(p.id);
+  }});
+  const renB=h("button",{class:"ghost",type:"button",textContent:"Renombrar",onclick:async()=>{
+    const n=await ask("Renombrar la obra",cur.name);if(!n)return;
+    cur.name=n;await saveProjects();updateProjName();
+  }});
+  const emptyB=h("button",{class:"danger",type:"button",textContent:"Vaciar esta obra",onclick:async()=>{
+    const ok=await confirmBox("Vaciar “"+cur.name+"”","Se borran sus "+sounds.length+(sounds.length===1?" sonido":" sonidos")+" y sus secciones. La obra queda vacía para empezar de nuevo. No se puede deshacer.","Vaciar obra");
+    if(!ok)return;
+    stopAll(0.05);await wipeSounds(sounds);sounds=[];cats=[];await saveCats();tab=ALL;renderAll();updateInfo();toast("Obra vaciada");
+  }});
+  const delB=h("button",{class:"danger",type:"button",textContent:"Borrar esta obra",disabled:projects.length<2,onclick:async()=>{
+    const ok=await confirmBox("Borrar la obra “"+cur.name+"”","Se borran la obra y todos sus sonidos. No se puede deshacer.","Borrar obra");
+    if(!ok)return;
+    stopAll(0.05);await wipeSounds(sounds);sounds=[];
+    projects=projects.filter(x=>x.id!==curProj);await saveProjects();await loadProject(projects[0].id);toast("Obra borrada");
+  }});
+  const allB=h("button",{class:"danger",type:"button",textContent:"Borrar todo y empezar de cero",onclick:async()=>{
+    const ok=await confirmBox("Borrar todo","Se borran todas las obras y todos los sonidos guardados en este dispositivo. No se puede deshacer.","Borrar todo");
+    if(!ok)return;
+    stopAll(0.05);sounds.forEach(s=>unprepare(s.id));sounds=[];
+    await tx("sounds","readwrite",st=>st.clear());await tx("meta","readwrite",st=>st.clear());
+    projects=[{id:"p1",name:"Mi obra"}];await saveProjects();await loadProject("p1");toast("Todo borrado. Puedes empezar de cero.",3200);
+  }});
+  openModal(h("div",{class:"sheet"},
+    h("h3",{textContent:"Mis obras"}),
+    h("p",{textContent:"Cada obra tiene sus propios sonidos y secciones. Toca una para abrirla."}),
+    h("div",{class:"plist"},...items),
+    h("div",{class:"btns"},newB,renB),
+    h("div",{class:"field"},h("label",{textContent:"Borrar"}),h("div",{class:"btns"},emptyB,delB),allB),
+    h("button",{class:"ghost",type:"button",textContent:"Cerrar",onclick:closeModal})));
+}
+
+/* ---------- Pantalla ---------- */
+const padEls=new Map();
+function renderTabs(){
+  const box=$("#tabs");box.innerHTML="";
+  const mk=(id,label)=>h("button",{class:"tab",role:"tab",aria:{selected:String(tab===id)},textContent:label,onclick:()=>{tab=id;renderAll()}});
+  box.append(mk(ALL,"Todos"));
+  allCats().forEach(c=>box.append(mk(c,c)));
+  $("#bRenCat").hidden=$("#bDelCat").hidden=(tab===ALL);
+}
+function renderGrid(){
+  const grid=$("#grid");grid.innerHTML="";padEls.clear();
+  $("#empty").hidden=sounds.length>0;
+  visible().forEach(s=>{
+    const el=h("button",{class:"pad",type:"button",style:"--c:"+s.color+";--ink:"+inkFor(s.color)},
+      h("span",{class:"nm",textContent:s.name}),
+      h("span",{class:"meta"},h("span",{class:"ico"}),h("span",{class:"sec",textContent:s.err?"No se pudo leer":(tab===ALL?s.cat:"")})),
+      h("i",{class:"bar"}));
+    el.dataset.id=s.id;
+    if(s.err)el.classList.add("err");
+    padEls.set(s.id,el);grid.append(el);paintPad(s.id);
+  });
+}
+function renderAll(){renderTabs();renderGrid()}
+function paintPad(id){
+  const el=padEls.get(id);if(!el)return;
+  const s=sounds.find(x=>x.id===id);if(!s)return;
+  const on=isActive(id);
+  el.classList.toggle("on",on);
+  el.classList.toggle("lp",s.mode==="loop"&&on);
+  const ico=el.querySelector(".ico");
+  ico.innerHTML=s.mode==="loop"?ICONS.loop:(on&&s.mode==="toggle"?ICONS.stop:ICONS.play);
+  if(!on)el.style.setProperty("--p",0);
+}
+setInterval(()=>{
+  voices.forEach((set,id)=>{
+    const el=padEls.get(id);if(!el||!set.size)return;
+    let p=0;
+    set.forEach(v=>{
+      if(v.a&&v.a.duration)p=Math.max(p,v.a.currentTime/v.a.duration);
+      else if(v.n&&v.dur)p=Math.max(p,((ctx.currentTime-v.t0)%v.dur)/v.dur);
+    });
+    el.style.setProperty("--p",p.toFixed(3));
+  });
+},90);
+
+$("#grid").addEventListener("pointerdown",e=>{
+  if(!live)return;
+  const el=e.target.closest(".pad");if(!el)return;
+  const s=sounds.find(x=>x.id===el.dataset.id);if(s){e.preventDefault();trigger(s)}
+});
+$("#grid").addEventListener("click",e=>{
+  if(live)return;
+  const el=e.target.closest(".pad");if(!el)return;
+  const s=sounds.find(x=>x.id===el.dataset.id);if(s)openEditor(s);
+});
+document.addEventListener("keydown",e=>{
+  if(!live||$("#modal").classList.contains("open"))return;
+  if(e.code==="Space"){e.preventDefault();stopAll()}
+  else if(/^[1-9]$/.test(e.key)){const s=visible()[+e.key-1];if(s)trigger(s)}
+});
+
+/* ---------- Ventanas ---------- */
+const modal=$("#modal");
+function openModal(node){modal.innerHTML="";modal.append(node);modal.classList.add("open")}
+function closeModal(){modal.classList.remove("open");modal.innerHTML=""}
+modal.addEventListener("pointerdown",e=>{if(e.target===modal)closeModal()});
+function ask(title,val="",okText="Guardar"){
+  return new Promise(res=>{
+    const inp=h("input",{type:"text",value:val});
+    const done=v=>{closeModal();res(v)};
+    openModal(h("div",{class:"sheet"},
+      h("h3",{textContent:title}),
+      h("div",{class:"field"},inp),
+      h("div",{class:"btns"},
+        h("button",{class:"primary grow",textContent:okText,onclick:()=>done(inp.value.trim())}),
+        h("button",{class:"ghost",textContent:"Cancelar",onclick:()=>done(null)}))));
+    setTimeout(()=>inp.focus(),50);
+  });
+}
+function confirmBox(title,text,okText){
+  return new Promise(res=>{
+    const done=v=>{closeModal();res(v)};
+    openModal(h("div",{class:"sheet"},
+      h("h3",{textContent:title}),h("p",{textContent:text}),
+      h("div",{class:"btns"},
+        h("button",{class:"danger grow",textContent:okText,onclick:()=>done(true)}),
+        h("button",{class:"ghost",textContent:"Cancelar",onclick:()=>done(false)}))));
+  });
+}
+function openEditor(s){
+  const save=debounce(()=>dbPut(s),250);
+  const touch=()=>{save();renderGrid()};
+  const nameI=h("input",{type:"text",value:s.name,oninput:e=>{s.name=e.target.value;touch()}});
+  const sel=h("select",{onchange:async e=>{
+    if(e.target.value==="__new"){const n=await ask("Nueva sección","","Crear");if(n){s.cat=addCat(n)}}
+    else s.cat=e.target.value;
+    await dbPut(s);renderAll();openEditor(s);
+  }},...allCats().map(c=>h("option",{value:c,textContent:c,selected:c===s.cat})),h("option",{value:"__new",textContent:"Nueva sección…"}));
+  const sw=h("div",{class:"swatches"});
+  const paintSw=()=>{sw.innerHTML="";PALETTE.forEach(c=>sw.append(h("button",{class:"sw",type:"button",style:"--c:"+c,aria:{pressed:String(s.color===c),label:"Elegir color"},onclick:()=>{s.color=c;touch();paintSw()}})))};
+  paintSw();
+  const modeS=h("select",{onchange:e=>{s.mode=e.target.value;touch()}},
+    ...Object.entries(MODES).map(([k,v])=>h("option",{value:k,textContent:v,selected:k===s.mode})));
+  const volI=h("input",{type:"range",min:0,max:1.5,step:0.05,value:s.vol,oninput:e=>{
+    s.vol=+e.target.value;save();
+    (voices.get(s.id)||[]).forEach(v=>{if(!v.stopping)v.g.gain.value=s.vol});
+  }});
+  const fadeL=h("label",{textContent:"Al detenerlo, el volumen baja en "+s.fade.toFixed(1)+" s"});
+  const fadeI=h("input",{type:"range",min:0,max:5,step:0.1,value:s.fade,oninput:e=>{s.fade=+e.target.value;fadeL.textContent="Al detenerlo, el volumen baja en "+s.fade.toFixed(1)+" s";save()}});
+  const testB=h("button",{class:"primary",textContent:"Probar",onclick:()=>{unlock();trigger(s)}});
+  const move=dir=>{
+    const l=visible(),i=l.findIndex(x=>x.id===s.id),j=i+dir;if(j<0||j>=l.length)return;
+    const o=l[i].order;l[i].order=l[j].order;l[j].order=o;dbPut(l[i]);dbPut(l[j]);renderGrid();
+  };
+  let armed=false;
+  const delB=h("button",{class:"danger",textContent:"Borrar sonido",onclick:async()=>{
+    if(!armed){armed=true;delB.classList.add("armed");delB.textContent="Toca otra vez para borrar";return}
+    stopSound(s.id,0.05);unprepare(s.id);await dbDel(s.id);
+    sounds=sounds.filter(x=>x.id!==s.id);closeModal();renderAll();updateInfo();
+  }});
+  openModal(h("div",{class:"sheet"},
+    h("h3",{textContent:"Editar sonido"}),
+    h("div",{class:"field"},h("label",{textContent:"Nombre"}),nameI),
+    h("div",{class:"field"},h("label",{textContent:"Sección"}),sel),
+    h("div",{class:"field"},h("label",{textContent:"Color"}),sw),
+    h("div",{class:"field"},h("label",{textContent:"Cómo suena"}),modeS),
+    h("div",{class:"field"},h("label",{textContent:"Volumen de este sonido"}),volI),
+    h("div",{class:"field"},fadeL,fadeI),
+    h("div",{class:"btns"},testB,
+      h("button",{class:"ghost",textContent:"Mover atrás",onclick:()=>move(-1)}),
+      h("button",{class:"ghost",textContent:"Mover adelante",onclick:()=>move(1)})),
+    h("div",{class:"btns"},delB,h("button",{class:"ghost grow",textContent:"Listo",onclick:closeModal})),
+    h("p",{class:"hint",textContent:s.stream?"Es un archivo largo: se reproduce por streaming para no gastar memoria.":"Es un archivo corto: se carga en memoria para que suene sin retraso."})));
+}
+
+/* ---------- Controles ---------- */
+function setLive(on){
+  if(on)unlock();
+  live=on;document.body.classList.toggle("live",on);
+  $("#bEdit").setAttribute("aria-pressed",String(!on));$("#bLive").setAttribute("aria-pressed",String(on));
+  closeModal();
+  if(on){wake();toast("En vivo: los botones suenan al tocarlos",1800)}
+}
+$("#bEdit").onclick=()=>setLive(false);
+$("#bLive").onclick=()=>setLive(true);
+$("#bStop").addEventListener("pointerdown",e=>{e.preventDefault();stopAll(1.0)});
+$("#mv").oninput=e=>{masterVol=+e.target.value;if(master)master.gain.value=masterVol};
+$("#ps").oninput=e=>{document.documentElement.style.setProperty("--ps",e.target.value+"px");try{localStorage.setItem("pb-ps",e.target.value)}catch(_){}};
+$("#file").onchange=e=>{unlock();addFiles(e.target.files);e.target.value=""};
+$("#bBeep").onclick=beep;
+$("#bProj").onclick=openProjects;
+$("#bMore").onclick=()=>{const m=$("#more"),abrir=m.hidden;m.hidden=!abrir;$("#bMore").setAttribute("aria-expanded",String(abrir))};
+$("#bAddCat").onclick=async()=>{const n=await ask("Nueva sección","","Crear");if(n){tab=addCat(n);renderAll()}};
+$("#bRenCat").onclick=async()=>{
+  const n=await ask("Renombrar sección",tab);if(!n||n===tab)return;
+  cats=allCats().map(c=>c===tab?n:c);sounds.forEach(s=>{if(s.cat===tab){s.cat=n;dbPut(s)}});
+  tab=n;saveCats();renderAll();
+};
+$("#bDelCat").onclick=async()=>{
+  const n=sounds.filter(s=>s.cat===tab).length;
+  const ok=await confirmBox("Borrar la sección “"+tab+"”",n?"Sus "+n+(n===1?" sonido pasa":" sonidos pasan")+" a la sección General. Los sonidos no se borran.":"La sección está vacía.","Borrar sección");
+  if(!ok)return;
+  sounds.forEach(s=>{if(s.cat===tab){s.cat="General";dbPut(s)}});
+  cats=allCats().filter(c=>c!==tab);if(n&&!cats.includes("General"))cats.push("General");
+  tab=ALL;saveCats();renderAll();
+};
+$("#bTheme").onclick=()=>{
+  const cur=document.documentElement.dataset.theme||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");
+  const nx=cur==="dark"?"light":"dark";document.documentElement.dataset.theme=nx;
+  try{localStorage.setItem("pb-theme",nx)}catch(_){}
+};
+
+/* ---------- Pantalla encendida ---------- */
+let wl=null;
+async function wake(){try{if("wakeLock" in navigator&&!wl){wl=await navigator.wakeLock.request("screen");wl.addEventListener("release",()=>{wl=null})}}catch(e){}}
+document.addEventListener("visibilitychange",()=>{if(!document.hidden&&live)wake()});
+
+/* ---------- Información ---------- */
+function updateProjName(){const p=projects.find(x=>x.id===curProj);$("#projName").textContent=p?p.name:""}
+function updateInfo(){
+  updateProjName();
+  const mb=sounds.reduce((a,s)=>a+(s.blob?s.blob.size:0),0)/1048576;
+  $("#info").textContent=dbOK?sounds.length+(sounds.length===1?" sonido":" sonidos")+", "+mb.toFixed(1)+" MB":"No se puede guardar: los sonidos se pierden al cerrar";
+}
+
+/* ---------- Inicio ---------- */
+(async function init(){
+  try{const t=localStorage.getItem("pb-theme");if(t)document.documentElement.dataset.theme=t;const p=localStorage.getItem("pb-ps");if(p){$("#ps").value=p;document.documentElement.style.setProperty("--ps",p+"px")}}catch(_){}
+  try{db=await openDB()}catch(e){dbOK=false;toast("Este navegador no permite guardar sonidos (¿modo privado?).",5000)}
+  if(dbOK){
+    try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(_){}
+    projects=(await loadMeta("projects"))||[];
+    curProj=await loadMeta("current");
+    if(!projects.length){
+      const legacy=(await loadMeta("cats"))||[];
+      projects=[{id:"p1",name:"Mi obra"}];
+      await tx("meta","readwrite",st=>st.put(legacy,"cats:p1")).catch(()=>{});
+      await saveProjects();
+    }
+    const all=(await dbAll())||[];
+    for(const s of all){if(!s.proj){s.proj=projects[0].id;await dbPut(s)}}
+  }else{
+    projects=[{id:"p1",name:"Mi obra"}];
+  }
+  if(!projects.some(p=>p.id===curProj))curProj=projects[0].id;
+  await loadProject(curProj);
+})();
+})();
+</script>
+</body>
+</html>
